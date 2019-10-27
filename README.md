@@ -4,7 +4,7 @@ This library is a port of the `javax.sound.midi` package to Android.
 
 ## Use
 
-Add the driver to your build.gradle with
+Add the library to your build.gradle with
 ```gradle
 allprojects {
     repositories {
@@ -12,7 +12,7 @@ allprojects {
     }
 }
 ```
-and:
+and
 ```gradle
 dependencies {
     implementation 'com.github.ag5ur:javax.sound.midi-android:v0.0.4-alpha'
