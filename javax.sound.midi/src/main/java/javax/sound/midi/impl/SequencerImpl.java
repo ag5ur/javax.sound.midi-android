@@ -184,7 +184,7 @@ public class SequencerImpl implements Sequencer {
                 return;
             }
 
-            tickPosition = getLoopStartPoint();
+            tickPosition = 0;
             tickPositionSetTime = System.currentTimeMillis();
             isRunning = true;
 
@@ -304,10 +304,13 @@ public class SequencerImpl implements Sequencer {
                     }
                 }
 
+                //TODO: why does Track.ticks() call TrackUtils.sortEvents() ?
+                long finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
                 // process looping
-                for (int loop = 0; loop < getLoopCount() + 1; loop = (getLoopCount() == LOOP_CONTINUOUSLY ? loop : loop + 1)) {
+                for (int loop = 0; loop < getLoopCount() + 1 || getLoopCount() == LOOP_CONTINUOUSLY; ++loop) {
                     if (needRefreshPlayingTrack) {
                         refreshPlayingTrack();
+                        finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
                     }
 
                     for (int i = 0; i < playingTrack.size(); i++) {
@@ -357,9 +360,18 @@ public class SequencerImpl implements Sequencer {
                                 // refresh playingTrack completed
                                 needRefreshPlayingTrack = false;
                             }
+                            finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
                         }
 
-                        if (midiEvent.getTick() < getLoopStartPoint() || (getLoopEndPoint() != -1 && midiEvent.getTick() > getLoopEndPoint())) {
+                        boolean skipEvent = false;
+                        if (loop > 0 && midiEvent.getTick() < getLoopStartPoint()) {
+                            skipEvent = true;
+                        } else if (getLoopEndPoint() != -1 && midiEvent.getTick() > getLoopEndPoint() && (loop < getLoopCount() || getLoopCount() == LOOP_CONTINUOUSLY)) {
+                            skipEvent = true;
+                        } else if (i >= playingTrack.size() - 1 && getLoopCount() == LOOP_CONTINUOUSLY) {
+                            skipEvent = true;
+                        }
+                        if (skipEvent) {
                             // outer loop
                             tickPosition = midiEvent.getTick();
                             tickPositionSetTime = System.currentTimeMillis();
@@ -404,6 +416,12 @@ public class SequencerImpl implements Sequencer {
                         }
 
                         fireEventListeners(midiMessage);
+                    }
+                    if (finalTick <= getLoopStartPoint()) {
+                        break;
+                    }
+                    if (!isRunning) {
+                        break;
                     }
                 }
 
@@ -879,6 +897,7 @@ public class SequencerImpl implements Sequencer {
     @Override
     public void setTrackMute(final int track, final boolean mute) {
         trackMute.put(track, mute);
+        sequencerThread.needRefreshPlayingTrack = true;
     }
 
     @Override
@@ -889,6 +908,7 @@ public class SequencerImpl implements Sequencer {
     @Override
     public void setTrackSolo(final int track, final boolean solo) {
         trackSolo.put(track, solo);
+        sequencerThread.needRefreshPlayingTrack = true;
     }
 
     @Override

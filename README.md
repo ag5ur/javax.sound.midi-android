@@ -15,6 +15,6 @@ allprojects {
 and:
 ```gradle
 dependencies {
-    implementation 'com.github.ag5ur:javax.sound.midi-android:master-SNAPSHOT'
+    implementation 'com.github.ag5ur:javax.sound.midi-android:-SNAPSHOT'
 }
 ```
