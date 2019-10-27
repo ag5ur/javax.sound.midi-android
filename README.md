@@ -1,16 +1,20 @@
-# javax.sound.midi-for-Android
-[![Build Status](https://travis-ci.org/kshoji/javax.sound.midi-for-Android.svg?branch=master)](https://travis-ci.org/kshoji/javax.sound.midi-for-Android)
+# javax.sound.midi-android [![Build Status](https://travis-ci.org/ag5ur/javax.sound.midi-android.svg?branch=master)](https://travis-ci.org/ag5ur/javax.sound.midi-android) [![JitPack](https://jitpack.io/v/ag5ur/javax.sound.midi-android.svg)](https://jitpack.io/#ag5ur/javax.sound.midi-android)
 
-This library is a porting of Java `javax.sound.midi` package.
-It's used with `USB MIDI Driver` project or `BLE MIDI for Android` project.
+This library is a port of the `javax.sound.midi` package to Android.
 
-Using this library, the existing Java MIDI project can be ported to Android app easily.
+## Use
 
-Usage of the library
---------------------
-
-For the detail, see the [wiki](https://github.com/kshoji/javax.sound.midi-for-Android/wiki).
-
-LICENSE
-=======
-[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+Add the driver to your build.gradle with
+```gradle
+allprojects {
+    repositories {
+        maven { url "https://jitpack.io" }
+    }
+}
+```
+and:
+```gradle
+dependencies {
+    implementation 'com.github.ag5ur:javax.sound.midi-android:master-SNAPSHOT'
+}
+```

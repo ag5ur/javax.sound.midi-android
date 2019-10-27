@@ -1,1 +1,2 @@
 include ':javax.sound.midi'
+rootProject.name='javax.sound.midi-android'
