@@ -133,9 +133,12 @@ public class Track {
 			synchronized (track.events) {
 				// remove all of END_OF_TRACK
 				final Collection<MidiEvent> filtered = new ArrayList<MidiEvent>();
+				final List<MidiEvent> endOfTracks = new ArrayList<MidiEvent>();
 				for (final MidiEvent event : track.events) {
 					if (!Arrays.equals(END_OF_TRACK, event.getMessage().getMessage())) {
 						filtered.add(event);
+					} else {
+						endOfTracks.add(event);
 					}
 				}
 				track.events.clear();
@@ -143,12 +146,17 @@ public class Track {
 
 				// sort the events
 				Collections.sort(track.events, midiEventComparator);
+				Collections.sort(endOfTracks, midiEventComparator);
 
 				// add END_OF_TRACK to last
 				if (track.events.isEmpty()) {
 					track.events.add(new MidiEvent(new MetaMessage(END_OF_TRACK), 0));
 				} else {
-					track.events.add(new MidiEvent(new MetaMessage(END_OF_TRACK), track.events.get(track.events.size() - 1).getTick() + 1));
+					if (!endOfTracks.isEmpty() && endOfTracks.get(endOfTracks.size() - 1).getTick() > track.events.get(track.events.size() - 1).getTick()) {
+						track.events.add(endOfTracks.get(endOfTracks.size() - 1));
+					} else {
+						track.events.add(new MidiEvent(new MetaMessage(END_OF_TRACK), track.events.get(track.events.size() - 1).getTick() + 1));
+					}
 				}
 			}
 		}

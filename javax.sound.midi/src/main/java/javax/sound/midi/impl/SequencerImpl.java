@@ -2,6 +2,7 @@ package javax.sound.midi.impl;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 
@@ -184,9 +185,12 @@ public class SequencerImpl implements Sequencer {
                 return;
             }
 
-            tickPosition = 0;
-            tickPositionSetTime = System.currentTimeMillis();
+            //TODO: why not set needRefreshPlayingTrack to false outside of the loop?
+            if (needRefreshPlayingTrack) {
+                refreshPlayingTrack();
+            }
             isRunning = true;
+            setTickPosition(playingTrack.get(0).getTick());
 
             synchronized (this) {
                 notifyAll();
@@ -214,6 +218,22 @@ public class SequencerImpl implements Sequencer {
                 notifyAll();
             }
             interrupt();
+        }
+
+        /**
+         * Sleep and set tickPosition
+         */
+        private void sleepTicks(long ticks, long currentTick) {
+            final long sleepLength = (long) ((1.0f / getTicksPerMicrosecond()) * ticks / 1000f / getTempoFactor());
+            if (sleepLength > 0) {
+                try {
+                    sleep(sleepLength);
+                } catch (final InterruptedException ignored) {
+                    // ignore exception
+                }
+            }
+            tickPosition = currentTick;
+            tickPositionSetTime = System.currentTimeMillis();
         }
 
         /**
@@ -295,6 +315,7 @@ public class SequencerImpl implements Sequencer {
                 }
 
                 if (playingTrack == null) {
+                    //TODO: why not set needRefreshPlayingTrack to false outside of the loop?
                     if (needRefreshPlayingTrack) {
                         refreshPlayingTrack();
                     }
@@ -308,6 +329,7 @@ public class SequencerImpl implements Sequencer {
                 long finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
                 // process looping
                 for (int loop = 0; loop < getLoopCount() + 1 || getLoopCount() == LOOP_CONTINUOUSLY; ++loop) {
+                    // Log.d("Impl", "outer loop start");
                     if (needRefreshPlayingTrack) {
                         refreshPlayingTrack();
                         finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
@@ -316,6 +338,23 @@ public class SequencerImpl implements Sequencer {
                     for (int i = 0; i < playingTrack.size(); i++) {
                         final MidiEvent midiEvent = playingTrack.get(i);
                         final MidiMessage midiMessage = midiEvent.getMessage();
+
+                        if (loop > 0 && i == 0 && tickPosition < getLoopStartPoint()) {
+                            isRunning = false;
+                            break;
+                        } else if (loop > 0 && midiEvent.getTick() < getLoopStartPoint()) {
+                            continue;
+                        } else if (getLoopEndPoint() != -1 && midiEvent.getTick() > getLoopEndPoint() && (loop < getLoopCount() || getLoopCount() == LOOP_CONTINUOUSLY)) {
+                            if (tickPosition >= getLoopStartPoint()) {
+                                sleepTicks(getLoopEndPoint() - tickPosition, getLoopStartPoint());
+                                break;
+                            }
+                        } else if (i == playingTrack.size() - 1 && (loop < getLoopCount() || getLoopCount() == LOOP_CONTINUOUSLY) && i > 0) {
+                            if (tickPosition >= getLoopStartPoint() && playingTrack.get(0).getTick() <= getLoopEndPoint()) {
+                                sleepTicks(midiEvent.getTick() - tickPosition, getLoopStartPoint());
+                                break;
+                            }
+                        }
 
                         if (needRefreshPlayingTrack) {
                             // skip to lastTick
@@ -359,35 +398,11 @@ public class SequencerImpl implements Sequencer {
                             } else {
                                 // refresh playingTrack completed
                                 needRefreshPlayingTrack = false;
+                                finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
                             }
-                            finalTick = playingTrack.get(playingTrack.size() - 1).getTick();
                         }
 
-                        boolean skipEvent = false;
-                        if (loop > 0 && midiEvent.getTick() < getLoopStartPoint()) {
-                            skipEvent = true;
-                        } else if (getLoopEndPoint() != -1 && midiEvent.getTick() > getLoopEndPoint() && (loop < getLoopCount() || getLoopCount() == LOOP_CONTINUOUSLY)) {
-                            skipEvent = true;
-                        } else if (i >= playingTrack.size() - 1 && getLoopCount() == LOOP_CONTINUOUSLY) {
-                            skipEvent = true;
-                        }
-                        if (skipEvent) {
-                            // outer loop
-                            tickPosition = midiEvent.getTick();
-                            tickPositionSetTime = System.currentTimeMillis();
-                            continue;
-                        }
-
-                        try {
-                            final long sleepLength = (long) ((1.0f / getTicksPerMicrosecond()) * (midiEvent.getTick() - tickPosition) / 1000f / getTempoFactor());
-                            if (sleepLength > 0) {
-                                sleep(sleepLength);
-                            }
-                            tickPosition = midiEvent.getTick();
-                            tickPositionSetTime = System.currentTimeMillis();
-                        } catch (final InterruptedException ignored) {
-                            // ignore exception
-                        }
+                        sleepTicks(midiEvent.getTick() - tickPosition, midiEvent.getTick());
 
                         if (isRunning == false) {
                             break;
@@ -416,9 +431,6 @@ public class SequencerImpl implements Sequencer {
                         }
 
                         fireEventListeners(midiMessage);
-                    }
-                    if (finalTick <= getLoopStartPoint()) {
-                        break;
                     }
                     if (!isRunning) {
                         break;
@@ -468,6 +480,9 @@ public class SequencerImpl implements Sequencer {
                 } catch (final InvalidMidiDataException ignored) {
                     // ignore exception
                 }
+                if (tickPosition < playingTrack.get(0).getTick()) {
+                    setTickPosition(playingTrack.get(0).getTick());
+                }
             }
         }
 
@@ -515,7 +530,7 @@ public class SequencerImpl implements Sequencer {
     @NonNull
     @Override
     public Info getDeviceInfo() {
-        return new Info("Sequencer", "javax.sound.midi", "Android MIDI Sequencer", "0.0.4-alpha");
+        return new Info("Sequencer", "javax.sound.midi", "Android MIDI Sequencer", "0.0.4-alpha2");
     }
 
     @Override

@@ -15,6 +15,6 @@ allprojects {
 and
 ```gradle
 dependencies {
-    implementation 'com.github.ag5ur:javax.sound.midi-android:v0.0.4-alpha'
+    implementation 'com.github.ag5ur:javax.sound.midi-android:v0.0.4-alpha2'
 }
 ```

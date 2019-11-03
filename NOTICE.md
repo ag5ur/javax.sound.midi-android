@@ -1,5 +1,5 @@
 Copyright © 2016 K.Shoji  
-Modifications Copyright © 2019 Sid Taylor, AG5UR
+Modifications Copyright © 2019 Sid Taylor
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
