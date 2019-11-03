@@ -530,7 +530,7 @@ public class SequencerImpl implements Sequencer {
     @NonNull
     @Override
     public Info getDeviceInfo() {
-        return new Info("Sequencer", "javax.sound.midi", "Android MIDI Sequencer", "0.0.4-alpha2");
+        return new Info("Sequencer", "javax.sound.midi", "Android MIDI Sequencer", "0.0.4-alpha.2");
     }
 
     @Override
